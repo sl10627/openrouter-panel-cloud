@@ -1,12 +1,12 @@
 # Takes one OpenRouter market snapshot four times a day and commits it to this repo.
-# Times are UTC: 04:15, 10:15, 16:15, 22:15 = 00:15, 06:15, 12:15, 18:15 New York (EDT),
-# the same slots as the Mac launchd job. GitHub often starts scheduled runs 10-30 min late;
+# Times are UTC: 04:37, 10:37, 16:37, 22:37 = 00:37, 06:37, 12:37, 18:37 New York (EDT),
+# about 20 min after the Mac launchd job (:37 avoids the busy :00/:15 minutes; GitHub can still start runs late);
 # every row carries its own fetched_at time, so that does not matter for the analysis.
 name: openrouter-snapshot
 
 on:
   schedule:
-    - cron: "15 4,10,16,22 * * *"
+    - cron: "37 4,10,16,22 * * *"
   workflow_dispatch:        # "Run workflow" button on the Actions tab, for a manual test
 
 permissions:
