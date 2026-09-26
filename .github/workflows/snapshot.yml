@@ -1,0 +1,46 @@
+# Takes one OpenRouter market snapshot four times a day and commits it to this repo.
+# Times are UTC: 04:15, 10:15, 16:15, 22:15 = 00:15, 06:15, 12:15, 18:15 New York (EDT),
+# the same slots as the Mac launchd job. GitHub often starts scheduled runs 10-30 min late;
+# every row carries its own fetched_at time, so that does not matter for the analysis.
+name: openrouter-snapshot
+
+on:
+  schedule:
+    - cron: "15 4,10,16,22 * * *"
+  workflow_dispatch:        # "Run workflow" button on the Actions tab, for a manual test
+
+permissions:
+  contents: write           # needed to commit the new snapshot
+
+concurrency:
+  group: snapshot
+  cancel-in-progress: false
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45     # a normal run takes about 7 minutes
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Take snapshot
+        env:
+          PANEL_ROOT: ${{ github.workspace }}
+        run: python snapshot.py
+
+      - name: Commit snapshot
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add snapshots
+          if git diff --cached --quiet; then
+            echo "No new files."
+            exit 0
+          fi
+          git commit -m "snapshot $(date -u +%Y-%m-%dT%H%MZ)"
+          git pull --rebase
+          git push
