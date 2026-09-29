@@ -1,0 +1,32 @@
+# Models whose every provider endpoint is fetched once an hour by hourly.py (official API only).
+# One model id per line; edit freely. Built 2026-09-28 from every model with a price change in the
+# 4x-daily panel, plus two closed-weight controls.
+deepseek/deepseek-v4.1-flash
+deepseek/deepseek-v4-flash
+deepseek/deepseek-v4-flash-0731
+deepseek/deepseek-v4-pro
+deepseek/deepseek-v4-pro-0813
+deepseek/deepseek-v3.2
+deepseek/deepseek-v3.2-exp
+deepseek/deepseek-v3.1-terminus
+deepseek/deepseek-chat-v3.1
+z-ai/glm-5.3
+z-ai/glm-5.3-flash
+z-ai/glm-5.2
+z-ai/glm-5.1
+moonshotai/kimi-k3
+moonshotai/kimi-k2.6
+qwen/qwen3.8-27b
+qwen/qwen3.6-35b-a3b
+tencent/hy3
+xiaomi/mimo-v2.6-flash
+xiaomi/mimo-v2.6-pro
+google/gemma-4-26b-a4b-it
+google/gemma-4-31b-it
+nvidia/nemotron-3.5-lightning
+mistralai/mistral-nemo
+openai/gpt-oss-120b
+x-ai/grok-4.7
+# closed-weight controls
+anthropic/claude-sonnet-5.5
+openai/gpt-6-luna-pro

@@ -1,0 +1,39 @@
+# Hourly price watch for the endpoints that change price during the day (see watchlist.txt).
+# Backup for the Mac launchd job (local.openrouter-hourly, :45 past each hour); this runs at :07 UTC.
+# GitHub often starts scheduled runs late or skips some under load; every row has its own fetched_at.
+name: openrouter-hourly
+
+on:
+  schedule:
+    - cron: "7 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hourly
+  cancel-in-progress: false
+
+jobs:
+  hourly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Fetch watched endpoints
+        env:
+          PANEL_ROOT: ${{ github.workspace }}
+        run: python hourly.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
+          git add hourly
+          git diff --cached --quiet && exit 0
+          git commit -m "hourly $(date -u +%Y-%m-%dT%H%MZ)"
+          for i in 1 2 3 4; do git pull --rebase && git push && exit 0; sleep $((i*10)); done
+          exit 1
