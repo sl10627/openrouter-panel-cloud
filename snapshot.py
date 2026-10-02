@@ -44,6 +44,23 @@ def write(path, rows):
         w.writeheader(); w.writerows(rows)
 
 
+def stats_rows(mid, permaslug, ts):
+    """Per-provider speed, latency, 30-min request count and policy for one model (INTERNAL endpoint)."""
+    d = get(f"https://openrouter.ai/api/frontend/v1/stats/endpoint?permaslug={permaslug}&variant=standard")
+    x = (d or {}).get("data", d) if d else None
+    rows = x if isinstance(x, list) else next((v for v in (x or {}).values() if isinstance(v, list)), []) if isinstance(x, dict) else []
+    out = []
+    for r in rows:
+        st = r.get("stats") or {}; dp = r.get("data_policy") or {}; pi = r.get("provider_info") or {}
+        out.append(dict(snapshot=ts, fetched_at=now(), model=mid, provider=r.get("provider_name"), tag=r.get("tag") or r.get("name"),
+                        p50_latency=st.get("p50_latency"), p90_latency=st.get("p90_latency"),
+                        p50_throughput=st.get("p50_throughput"), p90_throughput=st.get("p90_throughput"),
+                        requests=st.get("request_count"), window_min=st.get("window_minutes"),
+                        retains_prompts=dp.get("retainsPrompts"), trains=dp.get("training"),
+                        moderation=r.get("moderation_required"), hq=pi.get("headquarters")))
+    return out
+
+
 def main():
     if os.path.exists(LOCK) and time.time() - os.path.getmtime(LOCK) < 3 * 3600:
         print("another run in progress; exiting"); return
@@ -80,17 +97,7 @@ def main():
         for mid, provs in providers_per_model.items():
             if len(provs) < 2:
                 continue
-            d = get(f"https://openrouter.ai/api/frontend/v1/stats/endpoint?permaslug={slug[mid]}&variant=standard")
-            x = (d or {}).get("data", d) if d else None
-            rows = x if isinstance(x, list) else next((v for v in (x or {}).values() if isinstance(v, list)), []) if isinstance(x, dict) else []
-            for r in rows:
-                st = r.get("stats") or {}; dp = r.get("data_policy") or {}; pi = r.get("provider_info") or {}
-                stats.append(dict(snapshot=ts, fetched_at=now(), model=mid, provider=r.get("provider_name"), tag=r.get("tag") or r.get("name"),
-                                  p50_latency=st.get("p50_latency"), p90_latency=st.get("p90_latency"),
-                                  p50_throughput=st.get("p50_throughput"), p90_throughput=st.get("p90_throughput"),
-                                  requests=st.get("request_count"), window_min=st.get("window_minutes"),
-                                  retains_prompts=dp.get("retainsPrompts"), trains=dp.get("training"),
-                                  moderation=r.get("moderation_required"), hq=pi.get("headquarters")))
+            stats += stats_rows(mid, slug[mid], ts)
             time.sleep(SLEEP_INTERNAL)
         write(os.path.join(out, "endpoint_stats.csv.gz"), stats)
 

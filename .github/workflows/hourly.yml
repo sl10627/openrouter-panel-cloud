@@ -1,12 +1,13 @@
-# Hourly price watch for the endpoints that change price during the day (see watchlist.txt).
-# Backup for the Mac launchd job (local.openrouter-hourly, :45 past each hour); this runs at :07 UTC.
-# GitHub often starts scheduled runs late or skips some under load; every row has its own fetched_at.
+# Hourly watch (prices + traffic) for the endpoints that change price during the day (see watchlist.txt).
+# Main trigger: an external scheduler (cron-job.org) calls the workflow_dispatch API at :07 every hour,
+# because GitHub's own `schedule` fires only every few hours on this repo. The `schedule` below is a
+# sparse fallback; the guard step skips a run if one was committed in the last 40 minutes.
 name: openrouter-hourly
 
 on:
-  schedule:
-    - cron: "7 * * * *"
   workflow_dispatch:
+  schedule:
+    - cron: "17 */3 * * *"
 
 permissions:
   contents: write
@@ -17,22 +18,30 @@ concurrency:
 
 jobs:
   hourly:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04      # ships Python 3.12; no setup-python step needed
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
-      - name: Fetch watched endpoints
+          fetch-depth: 50
+      - name: Skip if a run landed in the last 40 minutes
+        id: guard
+        run: |
+          last=$(git log -1 --format=%ct --grep='^hourly ' || echo 0)
+          age=$(( $(date +%s) - ${last:-0} ))
+          echo "last hourly commit ${age}s ago"
+          if [ "$age" -lt 2400 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
+      - name: Fetch watched endpoints and traffic
+        if: steps.guard.outputs.skip != 'true'
         env:
           PANEL_ROOT: ${{ github.workspace }}
-        run: python hourly.py
+        run: python3 hourly.py
       - name: Commit
+        if: steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
-          git add hourly
+          git add hourly hourly_stats
           git diff --cached --quiet && exit 0
           git commit -m "hourly $(date -u +%Y-%m-%dT%H%MZ)"
           for i in 1 2 3 4; do git pull --rebase && git push && exit 0; sleep $((i*10)); done

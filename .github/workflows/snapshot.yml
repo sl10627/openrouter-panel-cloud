@@ -1,4 +1,7 @@
 # Takes one OpenRouter market snapshot four times a day and commits it to this repo.
+# Main trigger: an external scheduler (cron-job.org) calls the workflow_dispatch API at the times below,
+# because GitHub's own `schedule` runs late or not at all on this repo; `schedule` stays as a fallback and
+# the guard step skips a run if a snapshot was committed in the last 4 hours.
 # Times are UTC: 04:37, 10:37, 16:37, 22:37 = 00:37, 06:37, 12:37, 18:37 New York (EDT),
 # about 20 min after the Mac launchd job (:37 avoids the busy :00/:15 minutes; GitHub can still start runs late);
 # every row carries its own fetched_at time, so that does not matter for the analysis.
@@ -22,17 +25,30 @@ jobs:
     timeout-minutes: 45     # a normal run takes about 7 minutes
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 50
+
+      - name: Skip if a snapshot landed in the last 4 hours
+        id: guard
+        run: |
+          last=$(git log -1 --format=%ct --grep='^snapshot ' || echo 0)
+          age=$(( $(date +%s) - ${last:-0} ))
+          echo "last snapshot commit ${age}s ago"
+          if [ "$age" -lt 14400 ]; then echo "skip=true" >> "$GITHUB_OUTPUT"; fi
 
       - uses: actions/setup-python@v5
+        if: steps.guard.outputs.skip != 'true'
         with:
           python-version: "3.12"
 
       - name: Take snapshot
+        if: steps.guard.outputs.skip != 'true'
         env:
           PANEL_ROOT: ${{ github.workspace }}
         run: python snapshot.py
 
       - name: Commit snapshot
+        if: steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
