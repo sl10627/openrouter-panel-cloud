@@ -1,4 +1,4 @@
-# Hourly watch (prices + traffic) for the endpoints that change price during the day (see watchlist.txt).
+# Hourly watch (prices + traffic) for every model sold by 2+ providers, plus watchlist.txt (see hourly.py).
 # Main trigger: an external scheduler (cron-job.org) calls the workflow_dispatch API at :07 every hour,
 # because GitHub's own `schedule` fires only every few hours on this repo. The `schedule` below is a
 # sparse fallback; the guard step skips a run if one was committed in the last 50 minutes.
@@ -19,7 +19,7 @@ concurrency:
 jobs:
   hourly:
     runs-on: ubuntu-24.04      # ships Python 3.12; no setup-python step needed
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
         with:
