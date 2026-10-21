@@ -15,3 +15,6 @@ Only public endpoints are called; there is no API key or secret in this repo.
 
 - Manual run: Actions tab → openrouter-snapshot → Run workflow.
 - Pause: Actions tab → openrouter-snapshot → ··· → Disable workflow.
+
+Once a day (the first hourly run of each UTC day), `azure_prices.py` also saves Microsoft Azure's public list prices
+for AI models (Retail Prices API, `Foundry Models`, all regions) to `azure/<UTC date>.csv.gz`. List prices only, no usage.
