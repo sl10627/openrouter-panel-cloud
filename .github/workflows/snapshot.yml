@@ -26,6 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main          # latest main at job start, not the commit the trigger saw, so the guard sees a run that just landed
           fetch-depth: 50
 
       - name: Skip if a snapshot landed in the last 5.5 hours
