@@ -45,13 +45,18 @@ jobs:
           if [ ! -f "azure/$(date -u +%Y-%m-%d).csv.gz" ]; then
             python3 azure_prices.py || echo "Azure price fetch failed; will retry next hour"
           fi
+      - name: Other marketplaces (Hugging Face, Vercel); Vercel leaderboard once a day
+        if: steps.guard.outputs.skip != 'true'
+        env:
+          PANEL_ROOT: ${{ github.workspace }}
+        run: python3 other_platforms.py || echo "other platforms failed; will retry next hour"
       - name: Commit
         if: steps.guard.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898299+github-actions[bot]@users.noreply.github.com"
           git add hourly hourly_stats
-          if [ -d azure ]; then git add azure; fi
+          for d in azure hf vercel vercel_leaderboard; do if [ -d "$d" ]; then git add "$d"; fi; done
           git diff --cached --quiet && exit 0
           git commit -m "hourly $(date -u +%Y-%m-%dT%H%MZ)"
           for i in 1 2 3 4; do git pull --rebase && git push && exit 0; sleep $((i*10)); done

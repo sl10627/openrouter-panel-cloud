@@ -18,3 +18,15 @@ Only public endpoints are called; there is no API key or secret in this repo.
 
 Once a day (the first hourly run of each UTC day), `azure_prices.py` also saves Microsoft Azure's public list prices
 for AI models (Retail Prices API, `Foundry Models`, all regions) to `azure/<UTC date>.csv.gz`. List prices only, no usage.
+
+Every hourly run, `other_platforms.py` also records the same models on two other marketplaces, to compare the same
+seller's prices across platforms:
+
+| folder | source | contents |
+|---|---|---|
+| `hf/<UTC date>.csv.gz` | Hugging Face Inference Providers (`router.huggingface.co/v1/models`) | every model x provider: price, status, HF-measured time to first token and throughput |
+| `vercel/<UTC date>.csv.gz` | Vercel AI Gateway (`ai-gateway.vercel.sh/v1/models/{id}/endpoints`) | every language model x provider: prices (cache, discount, peak-hour multiplier), status, uptime, latency, throughput |
+| `vercel_leaderboard/<UTC date>/` | Vercel AI Gateway leaderboard export (CC BY 4.0), once a day | anonymized daily usage shares by model and lab, all-time provider ranking |
+
+Batch-only Vercel models have no endpoint list (404) and are skipped. Public endpoints only, no key.
+
