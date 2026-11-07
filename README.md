@@ -30,3 +30,9 @@ seller's prices across platforms:
 
 Batch-only Vercel models have no endpoint list (404) and are skipped. Public endpoints only, no key.
 
+Every hourly run, `probe.py` also sends a few tiny requests of its own to every open-weight model with two or more
+paid sellers and records which seller OpenRouter's default router picked (`probe/<UTC date>.csv.gz`): 10 short
+requests per model and 2 longer ones (about 500 tokens) for the 30 busiest models, with no provider preferences.
+The same script runs on the Mac. It needs the repository secret `OPENROUTER_PROBE_KEY` (the API key is never stored
+in the repo) and skips itself when the secret is missing.
+
