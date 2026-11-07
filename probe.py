@@ -53,7 +53,7 @@ def probe_models(long_n):
             continue
         sellers.setdefault(r["model"], set()).add(r["provider"])
         ow[r["model"]] = ow.get(r["model"], False) or r.get("open_weights") in ("True", "true", "1")
-    models = sorted(m for m, s in sellers.items() if len(s) >= 2 and ow.get(m))
+    models = sorted(m for m, s in sellers.items() if len(s) >= 2 and ow.get(m) and not m.endswith(":batch"))   # batch-only ids reject chat requests
     traffic = {}
     stats = os.path.join(folder, "endpoint_stats.csv.gz")
     if os.path.exists(stats):
